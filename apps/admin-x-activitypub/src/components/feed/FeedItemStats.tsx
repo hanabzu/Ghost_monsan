@@ -11,6 +11,7 @@ interface FeedItemStatsProps {
     repostCount: number;
     layout: string;
     disabled?: boolean;
+    buttonClassName?: string;
     onLikeClick: () => void;
     onCommentClick: () => void;
 }
@@ -22,6 +23,7 @@ const FeedItemStats: React.FC<FeedItemStatsProps> = ({
     repostCount: initialRepostCount,
     layout,
     disabled = false,
+    buttonClassName = '',
     onLikeClick,
     onCommentClick
 }) => {
@@ -59,7 +61,11 @@ const FeedItemStats: React.FC<FeedItemStatsProps> = ({
     const handleLikeClick = async (e: React.MouseEvent<HTMLElement>) => {
         e.stopPropagation();
         if (!isLiked) {
-            likeMutation.mutate(object.id);
+            likeMutation.mutate(object.id, {
+                onError() {
+                    setIsLiked(false);
+                }
+            });
         } else {
             unlikeMutation.mutate(object.id);
         }
@@ -67,11 +73,11 @@ const FeedItemStats: React.FC<FeedItemStatsProps> = ({
         onLikeClick();
     };
 
-    const buttonClassName = `transition-color flex p-2 ap-action-button items-center justify-center rounded-md text-gray-900 leading-none hover:bg-black/[3%] dark:bg-black dark:hover:bg-gray-950 dark:text-gray-600`;
+    const buttonClass = `transition-color flex p-2 ap-action-button items-center justify-center rounded-md text-gray-900 leading-none hover:bg-black/[3%] dark:bg-black dark:hover:bg-gray-950 dark:text-gray-600 ${buttonClassName}`;
 
     return (<div className={`flex ${layout !== 'inbox' && 'gap-1'}`}>
         <Button
-            className={`${buttonClassName} ${isLiked ? 'text-pink-500' : 'text-gray-900'}`}
+            className={`${buttonClass} ${isLiked ? 'text-pink-500' : 'text-gray-900'}`}
             disabled={disabled}
             hideLabel={true}
             icon='heart'
@@ -89,7 +95,7 @@ const FeedItemStats: React.FC<FeedItemStatsProps> = ({
             }}
         />
         <Button
-            className={buttonClassName}
+            className={buttonClass}
             disabled={disabled}
             hideLabel={commentCount === 0 || (layout === 'inbox')}
             icon='comment'
@@ -105,7 +111,7 @@ const FeedItemStats: React.FC<FeedItemStatsProps> = ({
             }}
         />
         <Button
-            className={`${buttonClassName} ${isReposted ? 'text-green-500' : 'text-gray-900'}`}
+            className={`${buttonClass} ${isReposted ? 'text-green-500' : 'text-gray-900'}`}
             disabled={disabled}
             hideLabel={(initialRepostCount === 0 && !isReposted) || repostCount === 0 || (layout === 'inbox')}
             icon='reload'
@@ -119,7 +125,12 @@ const FeedItemStats: React.FC<FeedItemStatsProps> = ({
                 e?.stopPropagation();
 
                 if (!isReposted) {
-                    repostMutation.mutate(object.id);
+                    repostMutation.mutate(object.id, {
+                        onError() {
+                            setIsReposted(false);
+                            decrementReposts();
+                        }
+                    });
                     incrementReposts();
                 } else {
                     derepostMutation.mutate(object.id);
